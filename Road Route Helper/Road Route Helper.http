@@ -1,0 +1,6 @@
+@Road_Route_Helper_HostAddress = http://localhost:5062
+
+GET {{Road_Route_Helper_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

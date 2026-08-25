@@ -1,0 +1,47 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3">Dashboard</h1>
+    <a class="btn btn-primary" href="/Trips/Create">+ Create Trip</a>
+</div>
+
+<div id="trips" class="row gy-3">
+    <!-- Cards loaded by JS -->
+</div>
+
+<script>
+    async function loadTrips() {
+        const res = await fetch('/api/trips');
+        const items = await res.json();
+        const container = document.getElementById('trips');
+        container.innerHTML = '';
+        for (const t of items) {
+            const col = document.createElement('div');
+            col.className = 'col-12 col-md-6 col-lg-4';
+            col.innerHTML = `
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">${t.name}</h5>
+                        <p class="card-text text-truncate">${t.description || ''}</p>
+                        <p class="mb-1"><small>${t.startDate ? new Date(t.startDate).toLocaleDateString() : ''} - ${t.endDate ? new Date(t.endDate).toLocaleDateString() : ''}</small></p>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-outline-primary" href="/Trips/Edit/${t.id}">Edit</a>
+                            <a class="btn btn-sm btn-outline-secondary" href="/Trips/View/${t.id}">Open</a>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTrip('${t.id}')">Delete</button>
+                        </div>
+                    </div>
+                </div>`;
+            container.appendChild(col);
+        }
+    }
+
+    async function deleteTrip(id) {
+        if (!confirm('Delete this trip?')) return;
+        await fetch('/api/trips/' + id, { method: 'DELETE' });
+        loadTrips();
+    }
+
+    loadTrips();
+</script>
