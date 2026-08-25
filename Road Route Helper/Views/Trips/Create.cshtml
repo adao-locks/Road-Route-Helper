@@ -71,6 +71,7 @@
 
         let markers = [];
         let stops = [];
+        let routingControl = null;
 
         function addStopFromInputs() {
             const name = document.getElementById('stopName').value || 'Stop';
@@ -78,13 +79,12 @@
             const stop = { id: crypto.randomUUID(), name, latitude: latlng.lat, longitude: latlng.lng, order: stops.length };
             stops.push(stop);
             renderStops();
-            addMarker(stop);
+            updateRouting();
         }
 
         function addMarker(stop) {
             const m = L.marker([stop.latitude, stop.longitude]).addTo(map).bindPopup(stop.name);
             markers.push({ id: stop.id, marker: m });
-            renderPolyline();
         }
 
         function renderStops() {
@@ -104,7 +104,7 @@
             const m = markers.find(x => x.id === id);
             if (m) { map.removeLayer(m.marker); markers = markers.filter(x => x.id !== id); }
             renderStops();
-            renderPolyline();
+            updateRouting();
         }
 
         function reorderStops(e) {
@@ -112,17 +112,42 @@
             const items = Array.from(ul.children);
             stops = items.map((li, idx) => ({ ...stops.find(s => li.innerText.includes(s.name)), order: idx })).filter(Boolean);
             renderStops();
-            renderPolyline();
+            updateRouting();
         }
 
-        function renderPolyline() {
-            // clear polylines
-            if (window._polyline) map.removeLayer(window._polyline);
-            const latlngs = stops.map(s => [s.latitude, s.longitude]);
-            if (latlngs.length > 0) {
-                window._polyline = L.polyline(latlngs, { color: 'crimson' }).addTo(map);
-                map.fitBounds(window._polyline.getBounds(), { padding: [40,40] });
+        function updateRouting() {
+            // remove existing routing control
+            try { if (routingControl) { map.removeControl(routingControl); routingControl = null; } } catch (e) { }
+            if (!stops || stops.length < 2) {
+                // remove polylines/markers handled separately
+                return;
             }
+            const waypoints = stops.map(s => L.latLng(s.latitude, s.longitude));
+            routingControl = L.Routing.control({
+                waypoints: waypoints,
+                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+                lineOptions: { styles: [{ color: 'crimson', weight: 6 }] },
+                showAlternatives: false,
+                fitSelectedRoute: true,
+                createMarker: function(i, wp, n) { return L.marker(wp.latLng).bindPopup(stops[i].name); }
+            }).addTo(map);
+
+            routingControl.on('routesfound', function(e) {
+                const route = e.routes[0];
+                const distKm = route.summary.totalDistance / 1000.0;
+                const timeSec = route.summary.totalTime;
+                const h = Math.floor(timeSec / 3600);
+                const m = Math.floor((timeSec % 3600) / 60);
+                const s = Math.floor(timeSec % 60);
+                const timestr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                // try to capture full route geometry
+                let coords = [];
+                try {
+                    coords = route.coordinates || route.geometry || [];
+                } catch (err) { coords = []; }
+                const geom = coords.map(function(p) { return { latitude: p.lat !== undefined ? p.lat : (p[1] || 0), longitude: p.lng !== undefined ? p.lng : (p[0] || 0) }; });
+                window._lastRoute = { distanceKm: parseFloat(distKm.toFixed(2)), duration: timestr, geometry: geom };
+            });
         }
 
         async function saveTrip() {
@@ -131,7 +156,10 @@
                 description: document.getElementById('description').value,
                 startDate: document.getElementById('startDate').value || null,
                 endDate: document.getElementById('endDate').value || null,
-                stops: stops.map((s, i) => ({ id: s.id, name: s.name, latitude: s.latitude, longitude: s.longitude, order: i }))
+                stops: stops.map((s, i) => ({ id: s.id, name: s.name, latitude: s.latitude, longitude: s.longitude, order: i })),
+                totalDistanceKm: window._lastRoute ? window._lastRoute.distanceKm : 0,
+                estimatedDuration: window._lastRoute ? window._lastRoute.duration : null,
+                routeGeometry: window._lastRoute && window._lastRoute.geometry ? window._lastRoute.geometry : []
             };
             const res = await fetch('/api/trips', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dto) });
             if (res.ok) {

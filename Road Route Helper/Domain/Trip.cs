@@ -19,6 +19,8 @@ namespace Road_Route_Helper.Domain
         public List<Stop> Stops { get; set; } = new List<Stop>();
         public double TotalDistanceKm { get; set; }
         public TimeSpan? EstimatedDuration { get; set; }
+        // Stored full route geometry (ordered list of lat/lng points following the road)
+        public List<RoutePoint> RouteGeometry { get; set; } = new List<RoutePoint>();
         public string Notes { get; set; } = string.Empty;
     }
 }

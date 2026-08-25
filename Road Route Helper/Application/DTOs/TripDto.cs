@@ -31,6 +31,13 @@ namespace Road_Route_Helper.Application.DTOs
         public List<StopDto> Stops { get; set; } = new List<StopDto>();
         public double TotalDistanceKm { get; set; }
         public TimeSpan? EstimatedDuration { get; set; }
+        public List<RoutePointDto> RouteGeometry { get; set; } = new List<RoutePointDto>();
         public string Notes { get; set; } = string.Empty;
+    }
+
+    public class RoutePointDto
+    {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
     }
 }

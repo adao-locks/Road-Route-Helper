@@ -38,15 +38,40 @@
 @section Scripts {
     <script>
         const trip = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
-        const map = L.map('mapView').setView([trip.startingLatitude || 34.05, trip.startingLongitude || -118.24], 8);
+        const map = L.map('mapView').setView([trip.startingLatitude || trip.StartingLatitude || 34.05, trip.startingLongitude || trip.StartingLongitude || -118.24], 8);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        const latlngs = (trip.stops || []).map(s => [s.latitude, s.longitude]);
-        for (const s of trip.stops || []) {
-            L.marker([s.latitude, s.longitude]).addTo(map).bindPopup(s.name);
-        }
-        if (latlngs.length) {
-            L.polyline(latlngs, { color: 'crimson' }).addTo(map);
+
+        // support both camelCase and PascalCase serialized JSON
+        const routeGeom = trip.routeGeometry || trip.RouteGeometry || [];
+        const stops = (trip.stops || trip.Stops || []).map(s => ({ name: s.name || s.Name, latitude: s.latitude || s.Latitude, longitude: s.longitude || s.Longitude }));
+
+        if (routeGeom && routeGeom.length >= 2) {
+            const latlngs = routeGeom.map(p => [p.latitude || p.Latitude, p.longitude || p.Longitude]);
+            L.polyline(latlngs, { color: 'crimson', weight: 6 }).addTo(map);
             map.fitBounds(L.polyline(latlngs).getBounds(), { padding: [40,40] });
+            // add markers for stops
+            for (const s of stops) {
+                L.marker([s.latitude, s.longitude]).addTo(map).bindPopup(s.name);
+            }
+        } else if (stops.length >= 2) {
+            const waypoints = stops.map(s => L.latLng(s.latitude, s.longitude));
+            const routingControl = L.Routing.control({
+                waypoints: waypoints,
+                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+                lineOptions: { styles: [{ color: 'crimson', weight: 6 }] },
+                showAlternatives: false,
+                fitSelectedRoute: true,
+                createMarker: function(i, wp, n) { return L.marker(wp.latLng).bindPopup(stops[i].name); }
+            }).addTo(map);
+        } else {
+            for (const s of stops) {
+                L.marker([s.latitude, s.longitude]).addTo(map).bindPopup(s.name);
+            }
+            if (stops.length) {
+                const latlngs = stops.map(s => [s.latitude, s.longitude]);
+                L.polyline(latlngs, { color: 'crimson' }).addTo(map);
+                map.fitBounds(L.polyline(latlngs).getBounds(), { padding: [40,40] });
+            }
         }
     </script>
 }

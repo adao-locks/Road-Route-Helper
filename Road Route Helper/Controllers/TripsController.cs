@@ -96,6 +96,7 @@ namespace Road_Route_Helper.Controllers
                     Notes = s.Notes,
                     Order = s.Order
                 }).OrderBy(s => s.Order).ToList(),
+                RouteGeometry = t.RouteGeometry?.Select(r => new Application.DTOs.RoutePointDto { Latitude = r.Latitude, Longitude = r.Longitude }).ToList() ?? new System.Collections.Generic.List<Application.DTOs.RoutePointDto>(),
                 TotalDistanceKm = t.TotalDistanceKm,
                 EstimatedDuration = t.EstimatedDuration,
                 Notes = t.Notes
@@ -127,6 +128,7 @@ namespace Road_Route_Helper.Controllers
                     Notes = s.Notes,
                     Order = s.Order
                 }).OrderBy(s => s.Order).ToList(),
+                RouteGeometry = dto.RouteGeometry?.Select(r => new RoutePoint { Latitude = r.Latitude, Longitude = r.Longitude }).ToList() ?? new System.Collections.Generic.List<RoutePoint>(),
                 TotalDistanceKm = dto.TotalDistanceKm,
                 EstimatedDuration = dto.EstimatedDuration,
                 Notes = dto.Notes
