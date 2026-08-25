@@ -45,6 +45,9 @@
         const routeGeom = trip.routeGeometry || trip.RouteGeometry || [];
         const stops = (trip.stops || trip.Stops || []).map(s => ({ name: s.name || s.Name, latitude: s.latitude || s.Latitude, longitude: s.longitude || s.Longitude }));
 
+        // routing service url from server-side configuration
+        const routingServiceUrl = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["RoutingServiceUrl"] ?? "https://router.project-osrm.org/route/v1"));
+
         if (routeGeom && routeGeom.length >= 2) {
             const latlngs = routeGeom.map(p => [p.latitude || p.Latitude, p.longitude || p.Longitude]);
             L.polyline(latlngs, { color: 'crimson', weight: 6 }).addTo(map);
@@ -57,7 +60,7 @@
             const waypoints = stops.map(s => L.latLng(s.latitude, s.longitude));
             const routingControl = L.Routing.control({
                 waypoints: waypoints,
-                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+                router: L.Routing.osrmv1({ serviceUrl: routingServiceUrl }),
                 lineOptions: { styles: [{ color: 'crimson', weight: 6 }] },
                 showAlternatives: false,
                 fitSelectedRoute: true,

@@ -2,6 +2,8 @@
     ViewData["Title"] = "Create Trip";
 }
 
+
+
 <div class="row">
     <div class="col-lg-8">
         <div class="card mb-3">
@@ -26,9 +28,10 @@
                             <input type="date" class="form-control" id="endDate" />
                         </div>
                     </div>
-                    <div class="mt-3">
-                        <button type="button" class="btn btn-primary" onclick="saveTrip()">Save Trip</button>
-                        <a class="btn btn-outline-secondary" href="/">Cancel</a>
+                    <div class="mt-3 d-flex gap-2">
+                        <button type="button" id="calcRouteBtn" class="btn btn-outline-primary" onclick="calculateRoute()">Calcular rota</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTrip()">Salvar viagem</button>
+                        <a class="btn btn-outline-secondary" href="/">Cancelar</a>
                     </div>
                 </form>
             </div>
@@ -63,116 +66,9 @@
 
 @section Scripts {
     <script>
-        // Basic map setup
-        const map = L.map('map').setView([34.0522, -118.2437], 8);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-
-        let markers = [];
-        let stops = [];
-        let routingControl = null;
-
-        function addStopFromInputs() {
-            const name = document.getElementById('stopName').value || 'Stop';
-            const latlng = map.getCenter();
-            const stop = { id: crypto.randomUUID(), name, latitude: latlng.lat, longitude: latlng.lng, order: stops.length };
-            stops.push(stop);
-            renderStops();
-            updateRouting();
-        }
-
-        function addMarker(stop) {
-            const m = L.marker([stop.latitude, stop.longitude]).addTo(map).bindPopup(stop.name);
-            markers.push({ id: stop.id, marker: m });
-        }
-
-        function renderStops() {
-            const ul = document.getElementById('stopsList');
-            ul.innerHTML = '';
-            stops.forEach((s, idx) => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                li.innerHTML = `<div>${idx+1}. ${s.name}</div><div><button class='btn btn-sm btn-danger' onclick="removeStop('${s.id}')">Del</button></div>`;
-                ul.appendChild(li);
-            });
-            Sortable.create(ul, { onEnd: (e) => reorderStops(e) });
-        }
-
-        function removeStop(id) {
-            stops = stops.filter(s => s.id !== id);
-            const m = markers.find(x => x.id === id);
-            if (m) { map.removeLayer(m.marker); markers = markers.filter(x => x.id !== id); }
-            renderStops();
-            updateRouting();
-        }
-
-        function reorderStops(e) {
-            const ul = document.getElementById('stopsList');
-            const items = Array.from(ul.children);
-            stops = items.map((li, idx) => ({ ...stops.find(s => li.innerText.includes(s.name)), order: idx })).filter(Boolean);
-            renderStops();
-            updateRouting();
-        }
-
-        function updateRouting() {
-            // remove existing routing control
-            try { if (routingControl) { map.removeControl(routingControl); routingControl = null; } } catch (e) { }
-            if (!stops || stops.length < 2) {
-                // remove polylines/markers handled separately
-                return;
-            }
-            const waypoints = stops.map(s => L.latLng(s.latitude, s.longitude));
-            routingControl = L.Routing.control({
-                waypoints: waypoints,
-                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
-                lineOptions: { styles: [{ color: 'crimson', weight: 6 }] },
-                showAlternatives: false,
-                fitSelectedRoute: true,
-                createMarker: function(i, wp, n) { return L.marker(wp.latLng).bindPopup(stops[i].name); }
-            }).addTo(map);
-
-            routingControl.on('routesfound', function(e) {
-                const route = e.routes[0];
-                const distKm = route.summary.totalDistance / 1000.0;
-                const timeSec = route.summary.totalTime;
-                const h = Math.floor(timeSec / 3600);
-                const m = Math.floor((timeSec % 3600) / 60);
-                const s = Math.floor(timeSec % 60);
-                const timestr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-                // try to capture full route geometry
-                let coords = [];
-                try {
-                    coords = route.coordinates || route.geometry || [];
-                } catch (err) { coords = []; }
-                const geom = coords.map(function(p) { return { latitude: p.lat !== undefined ? p.lat : (p[1] || 0), longitude: p.lng !== undefined ? p.lng : (p[0] || 0) }; });
-                window._lastRoute = { distanceKm: parseFloat(distKm.toFixed(2)), duration: timestr, geometry: geom };
-            });
-        }
-
-        async function saveTrip() {
-            const dto = {
-                name: document.getElementById('name').value,
-                description: document.getElementById('description').value,
-                startDate: document.getElementById('startDate').value || null,
-                endDate: document.getElementById('endDate').value || null,
-                stops: stops.map((s, i) => ({ id: s.id, name: s.name, latitude: s.latitude, longitude: s.longitude, order: i })),
-                totalDistanceKm: window._lastRoute ? window._lastRoute.distanceKm : 0,
-                estimatedDuration: window._lastRoute ? window._lastRoute.duration : null,
-                routeGeometry: window._lastRoute && window._lastRoute.geometry ? window._lastRoute.geometry : []
-            };
-            const res = await fetch('/api/trips', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dto) });
-            if (res.ok) {
-                alert('Trip saved');
-                window.location.href = '/';
-            } else {
-                alert('Error saving trip');
-            }
-        }
-
-        function generateImage() {
-            alert('Poster generation is available from the trip view after saving.');
-        }
-
+        // pass server routing url to external script
+        window._tripCreate = window._tripCreate || {};
+        window._tripCreate.routingServiceUrl = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["RoutingServiceUrl"] ?? "https://router.project-osrm.org/route/v1"));
     </script>
+    <script src="/js/trip-create.js"></script>
 }
