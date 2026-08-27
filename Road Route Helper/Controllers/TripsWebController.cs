@@ -188,16 +188,53 @@ namespace Road_Route_Helper.Controllers
                 // route polyline with glow and gradient stroke
                 $"<polyline points='{path}' fill='none' stroke='url(#routeGrad)' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' opacity='1' filter='url(#glow)'/>";
 
-            // draw stop markers (use stops list) so markers are at meaningful points
+            // draw stop markers with category icons (use stops list) so markers are at meaningful points
             int idx = 1;
             foreach (var s in stops)
             {
                 var p = proj(s.Latitude, s.Longitude);
                 var parts = p.Split(',');
-                var cx = parts[0];
-                var cy = parts[1];
-                svg += $"<circle cx='{cx}' cy='{cy}' r='10' fill='#ffffff' stroke='#111827' stroke-width='3'/>";
-                svg += $"<text x='{cx}' y='{double.Parse(cy) + 28:F1}' fill='#fff' font-size='18' font-family='Arial'>{idx}</text>";
+                var cx = double.Parse(parts[0]);
+                var cy = double.Parse(parts[1]);
+
+                // choose icon letter and color by category
+                string iconChar = "?";
+                string iconColor = "#6b7280"; // default gray
+                try
+                {
+                    switch (s.Category)
+                    {
+                        case Road_Route_Helper.Domain.StopCategory.Restaurant:
+                            iconChar = "R"; iconColor = "#ef4444"; break; // red
+                        case Road_Route_Helper.Domain.StopCategory.GasStation:
+                            iconChar = "G"; iconColor = "#f97316"; break; // orange
+                        case Road_Route_Helper.Domain.StopCategory.PhotoSpot:
+                            iconChar = "P"; iconColor = "#f59e0b"; break; // amber
+                        case Road_Route_Helper.Domain.StopCategory.Hotel:
+                            iconChar = "H"; iconColor = "#06b6d4"; break; // cyan
+                        case Road_Route_Helper.Domain.StopCategory.TouristAttraction:
+                            iconChar = "T"; iconColor = "#8b5cf6"; break; // violet
+                        case Road_Route_Helper.Domain.StopCategory.CoffeeShop:
+                            iconChar = "C"; iconColor = "#a16207"; break; // brown
+                        case Road_Route_Helper.Domain.StopCategory.MotorcycleStop:
+                            iconChar = "M"; iconColor = "#10b981"; break; // green
+                        case Road_Route_Helper.Domain.StopCategory.Maintenance:
+                            iconChar = "!"; iconColor = "#ef4444"; break; // red
+                        case Road_Route_Helper.Domain.StopCategory.Custom:
+                        default:
+                            iconChar = "•"; iconColor = "#6b7280"; break;
+                    }
+                }
+                catch { }
+
+                // draw icon circle with letter
+                var iconR = 12;
+                svg += $"<g transform='translate(0,0)'>";
+                svg += $"<circle cx='{cx}' cy='{cy}' r='{iconR}' fill='{iconColor}' stroke='#0b1220' stroke-width='2'/>";
+                svg += $"<text x='{cx}' y='{cy + 5}' fill='#fff' font-size='12' font-family='Helvetica, Arial, sans-serif' text-anchor='middle'>{System.Net.WebUtility.HtmlEncode(iconChar)}</text>";
+                // index below icon
+                svg += $"<text x='{cx}' y='{cy + 28:F1}' fill='#e2e8f0' font-size='14' font-family='Helvetica, Arial, sans-serif' text-anchor='middle'>{idx}</text>";
+                svg += "</g>";
                 idx++;
             }
 
