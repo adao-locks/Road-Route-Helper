@@ -22,6 +22,7 @@ namespace Road_Route_Helper.Controllers
         public IActionResult Create()
         {
             SetRoutingServiceUrl();
+            SetGeocodingServiceUrl();
             return View("~/Views/Trips/Create.cshtml");
         }
 
@@ -31,6 +32,7 @@ namespace Road_Route_Helper.Controllers
             var trip = await _repo.GetByIdAsync(id);
             if (trip == null) return NotFound();
             SetRoutingServiceUrl();
+            SetGeocodingServiceUrl();
             return View("~/Views/Trips/Edit.cshtml", trip);
         }
 
@@ -45,6 +47,9 @@ namespace Road_Route_Helper.Controllers
 
         private void SetRoutingServiceUrl() =>
             ViewData["RoutingServiceUrl"] = _config.GetRequiredSection("Routing:ServiceUrl").Value;
+
+        private void SetGeocodingServiceUrl() =>
+            ViewData["GeocodingServiceUrl"] = _config.GetRequiredSection("Geocoding:ServiceUrl").Value;
 
         [HttpGet("View/{id}/poster.svg")]
         public async Task<IActionResult> PosterSvg(Guid id)

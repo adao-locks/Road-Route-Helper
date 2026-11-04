@@ -50,6 +50,7 @@
         <div class="card mb-3">
             <div class="card-body">
                 <h5>Stops</h5>
+                @await Html.PartialAsync("~/Views/Trips/_AddressSearch.cshtml")
                 <p class="text-muted small mb-2">Clique no mapa para adicionar uma parada.</p>
                 <ul id="stopsList" class="list-group"></ul>
             </div>
@@ -61,7 +62,11 @@
     @await Html.PartialAsync("~/Views/Trips/_StopCategories.cshtml")
     <script>
         // pass server routing url to external script
-        window._tripCreate = { routingServiceUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["RoutingServiceUrl"])) };
+        window._tripCreate = {
+            routingServiceUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["RoutingServiceUrl"])),
+            geocodingServiceUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["GeocodingServiceUrl"]))
+        };
     </script>
     <script src="/js/trip-create.js"></script>
+    <script src="/js/geocoding.js"></script>
 }

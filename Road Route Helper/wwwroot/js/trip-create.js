@@ -89,11 +89,11 @@
         return wrapper;
     }
 
-    function openStopForm(latlng, stop) {
+    function openStopForm(latlng, stop, suggestedName) {
         const name = document.createElement('input');
         name.id = 'stopFormName';
         name.className = 'form-control form-control-sm';
-        name.value = stop ? stop.name : '';
+        name.value = stop ? stop.name : (suggestedName || '');
 
         const category = document.createElement('select');
         category.id = 'stopFormCategory';
