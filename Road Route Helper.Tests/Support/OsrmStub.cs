@@ -30,6 +30,24 @@ public static class OsrmStub
         return calls;
     }
 
+    /// <summary>Keeps the first request unanswered until <paramref name="release"/> completes.</summary>
+    public static async Task<Calls> HoldFirstRouteAsync(IPage page, Task release, double heldDistanceMeters, double nextDistanceMeters)
+    {
+        var calls = new Calls();
+        await page.RouteAsync("**/route/v1/**", async route =>
+        {
+            var isFirst = Interlocked.Increment(ref calls.Count) == 1;
+            if (isFirst) await release;
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                ContentType = "application/json",
+                Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
+                Body = BuildResponse(route.Request.Url, isFirst ? heldDistanceMeters : nextDistanceMeters, 60),
+            });
+        });
+        return calls;
+    }
+
     public static Task FailAsync(IPage page) =>
         page.RouteAsync("**/route/v1/**", route => route.FulfillAsync(new RouteFulfillOptions
         {

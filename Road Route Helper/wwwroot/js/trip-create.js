@@ -213,9 +213,10 @@
         }).addTo(map);
         state.routingControl = control;
 
-        // A replaced control may still answer: only the current one counts.
+        // A control answering for stops that already changed is out of date: it was replaced, or is about to be.
+        const isOutdated = () => control !== state.routingControl || state.routingTimer !== null;
         control.on('routesfound', e => {
-            if (control !== state.routingControl) return;
+            if (isOutdated()) return;
             const route = e.routes[0];
             state.route = {
                 distanceKm: parseFloat((route.summary.totalDistance / 1000).toFixed(2)),
@@ -225,7 +226,7 @@
             finishRouting(true);
         });
         control.on('routingerror', () => {
-            if (control !== state.routingControl) return;
+            if (isOutdated()) return;
             setRouteStatus('Não foi possível calcular a rota. A viagem pode ser salva sem o traçado.');
             finishRouting(false);
         });

@@ -131,12 +131,21 @@ public class JsonTripRepository : ITripRepository
             throw new TripStoreException($"O arquivo de viagens '{_filePath}' está corrompido. Corrija-o ou restaure o '.bak'.", ex);
         }
 
-        if (file?.Trips == null || file.SchemaVersion != SchemaVersion)
+        if (file?.Trips == null || file.SchemaVersion != SchemaVersion || !file.Trips.TrueForAll(IsUsable))
         {
             throw new TripStoreException($"O arquivo de viagens '{_filePath}' não tem o formato esperado (schemaVersion {SchemaVersion}).");
         }
         return file.Trips;
     }
+
+    // JSON can hold nulls and values the C# types say cannot happen; the rest of the app relies on them.
+    private static bool IsUsable(Trip? trip) =>
+        trip is { Name: not null, Description: not null, Notes: not null, Stops: not null, RouteGeometry: not null }
+        && trip.Stops.TrueForAll(IsUsable)
+        && trip.RouteGeometry.TrueForAll(point => point != null);
+
+    private static bool IsUsable(Stop? stop) =>
+        stop is { Name: not null, Notes: not null } && Enum.IsDefined(stop.Category);
 
     private sealed record TripFile(int SchemaVersion, List<Trip>? Trips);
 }

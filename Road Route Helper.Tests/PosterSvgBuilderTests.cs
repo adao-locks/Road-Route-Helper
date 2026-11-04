@@ -74,10 +74,6 @@ public class PosterSvgBuilderTests
     }
 
     [Fact]
-    public void Viagem_sem_paradas_nem_tracado_gera_svg_vazio() =>
-        Assert.Equal("<svg></svg>", PosterSvgBuilder.Build(new Trip { Name = "Vazia" }));
-
-    [Fact]
     public void Uma_parada_gera_svg_valido()
     {
         var svg = PosterSvgBuilder.Build(TripWith((-27.5, -48.5)));

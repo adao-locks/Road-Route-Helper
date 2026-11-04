@@ -22,11 +22,9 @@ public static class PosterSvgBuilder
     {
         var stops = trip.Stops.OrderBy(s => s.Order).ToList();
         var geometry = trip.RouteGeometry.Count >= 2 ? trip.RouteGeometry : [];
-        if (stops.Count == 0 && geometry.Count == 0) return "<svg></svg>";
 
         var stopPoints = stops.Select(s => new RoutePoint { Latitude = s.Latitude, Longitude = s.Longitude }).ToList();
         var line = geometry.Count > 0 ? Simplify(geometry) : stopPoints;
-        var view = Viewport.Fit(line.Concat(stopPoints).ToList(), 0, 0, Width, Height, Pad);
 
         var svg = new StringBuilder();
         Append(svg, $"<svg xmlns='http://www.w3.org/2000/svg' width='{Width}' height='{Height}' viewBox='0 0 {Width} {Height}'>");
@@ -34,8 +32,12 @@ public static class PosterSvgBuilder
         svg.Append("<rect width='100%' height='100%' fill='url(#bgGrad)'/>");
         Append(svg, $"<text x='{Pad}' y='48' fill='#ffffff' font-size='40' font-family='{FontFamily}' font-weight='700'>{SecurityElement.Escape(trip.Name)}</text>");
         Append(svg, $"<text x='{Pad}' y='80' fill='#cbd5e1' font-size='16' font-family='{FontFamily}'>{SecurityElement.Escape(Subtitle(trip))}</text>");
-        Append(svg, $"<polyline points='{view.Path(line)}' fill='none' stroke='url(#routeGrad)' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' filter='url(#glow)'/>");
-        AppendMarkers(svg, stops, view);
+        if (line.Count > 0)
+        {
+            var view = Viewport.Fit(line.Concat(stopPoints).ToList(), 0, 0, Width, Height, Pad);
+            Append(svg, $"<polyline points='{view.Path(line)}' fill='none' stroke='url(#routeGrad)' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' filter='url(#glow)'/>");
+            AppendMarkers(svg, stops, view);
+        }
         AppendLegend(svg, trip);
         AppendInset(svg, line);
         svg.Append("</svg>");
@@ -148,9 +150,9 @@ public static class PosterSvgBuilder
             var xs = points.Select(p => MercatorX(p.Longitude)).ToList();
             var ys = points.Select(p => MercatorY(p.Latitude)).ToList();
             double innerWidth = width - 2 * pad, innerHeight = height - 2 * pad;
-            var spanX = Math.Max(1e-6, xs.Max() - xs.Min());
-            var spanY = Math.Max(1e-6, ys.Max() - ys.Min());
-            var scale = Math.Min(innerWidth / spanX, innerHeight / spanY);
+            var spanX = xs.Max() - xs.Min();
+            var spanY = ys.Max() - ys.Min();
+            var scale = Math.Min(innerWidth / Math.Max(1e-6, spanX), innerHeight / Math.Max(1e-6, spanY));
             return new Viewport(
                 xs.Min(), ys.Min(), scale, left, top + height,
                 pad + (innerWidth - spanX * scale) / 2.0,
