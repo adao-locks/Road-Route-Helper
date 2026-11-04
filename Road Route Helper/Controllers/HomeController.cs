@@ -8,10 +8,5 @@ namespace Road_Route_Helper.Controllers
         {
             return View();
         }
-
-        public IActionResult Create()
-        {
-            return RedirectToAction("Create", "Trips");
-        }
     }
 }

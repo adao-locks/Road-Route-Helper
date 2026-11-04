@@ -13,6 +13,8 @@
     state.stops = (state.trip.stops || []).map(s => ({ ...s }));
     state.markers = [];
     state.routingControl = null;
+    state.routeWaiters = [];
+    state.savedRouteLine = null;
     state.route = state.trip.id ? {
         distanceKm: state.trip.totalDistanceKm || 0,
         duration: state.trip.estimatedDuration || null,
@@ -46,16 +48,14 @@
         const byId = new Map(state.stops.map(s => [s.id, s]));
         const items = Array.from(document.getElementById('stopsList').children);
         state.stops = items.map((li, idx) => ({ ...byId.get(li.dataset.id), order: idx }));
-        renderStops();
-        updateRouting();
+        stopsChanged();
     }
 
     function removeStop(id) {
         state.stops = state.stops.filter(s => s.id !== id);
         const m = state.markers.find(x => x.id === id);
         if (m) { map.removeLayer(m.marker); state.markers = state.markers.filter(x => x.id !== id); }
-        renderStops();
-        updateRouting();
+        stopsChanged();
     }
 
     // TimeSpan format accepted by the API: hh:mm:ss, with a day part from 24h on.
@@ -68,10 +68,31 @@
         return `${days > 0 ? days + '.' : ''}${pad(h)}:${pad(m)}:${pad(s)}`;
     }
 
+    function setRouteStatus(message) {
+        const status = document.getElementById('routeStatus');
+        status.textContent = message;
+        status.classList.toggle('d-none', !message);
+    }
+
+    function clearSavedRouteLine() {
+        if (state.savedRouteLine) map.removeLayer(state.savedRouteLine);
+        state.savedRouteLine = null;
+    }
+
+    function finishRouting(found) {
+        const waiting = state.routeWaiters;
+        state.routeWaiters = [];
+        waiting.forEach(resolve => resolve(found));
+    }
+
     function updateRouting() {
         if (state.routingControl) { map.removeControl(state.routingControl); state.routingControl = null; }
-        if (state.stops.length < 2) return;
-        state.routingControl = L.Routing.control({
+        setRouteStatus('');
+        if (state.stops.length < 2) {
+            finishRouting(false);
+            return;
+        }
+        const control = L.Routing.control({
             waypoints: state.stops.map(s => L.latLng(s.latitude, s.longitude)),
             router: L.Routing.osrmv1({ serviceUrl: state.routingServiceUrl }),
             lineOptions: { styles: [{ color: 'crimson', weight: 6 }] },
@@ -79,15 +100,31 @@
             fitSelectedRoute: true,
             createMarker: (i, wp) => L.marker(wp.latLng).bindPopup(textPopup(state.stops[i].name))
         }).addTo(map);
+        state.routingControl = control;
 
-        state.routingControl.on('routesfound', e => {
+        // A replaced control may still answer: only the current one counts.
+        control.on('routesfound', e => {
+            if (control !== state.routingControl) return;
             const route = e.routes[0];
             state.route = {
                 distanceKm: parseFloat((route.summary.totalDistance / 1000).toFixed(2)),
                 duration: formatDuration(route.summary.totalTime),
                 geometry: route.coordinates.map(p => ({ latitude: p.lat, longitude: p.lng }))
             };
+            finishRouting(true);
         });
+        control.on('routingerror', () => {
+            if (control !== state.routingControl) return;
+            setRouteStatus('Não foi possível calcular a rota. A viagem pode ser salva sem o traçado.');
+            finishRouting(false);
+        });
+    }
+
+    function stopsChanged() {
+        state.route = null;
+        clearSavedRouteLine();
+        renderStops();
+        updateRouting();
     }
 
     function addStopFromInputs() {
@@ -101,29 +138,21 @@
             longitude: latlng.lng,
             order: state.stops.length
         });
-        renderStops();
-        updateRouting();
+        stopsChanged();
     }
 
-    function calculateRoute() {
+    async function calculateRoute() {
         const btn = document.getElementById('calcRouteBtn');
-        btn.disabled = true;
         const originalText = btn.innerText;
+        btn.disabled = true;
         btn.innerText = 'Calculando...';
+        const finished = new Promise(resolve => state.routeWaiters.push(resolve));
+        clearSavedRouteLine();
         updateRouting();
-        return new Promise(resolve => {
-            let waited = 0;
-            const interval = setInterval(() => {
-                waited += 200;
-                const found = state.route && state.route.geometry.length > 0;
-                if (found || waited >= 10000) {
-                    clearInterval(interval);
-                    btn.disabled = false;
-                    btn.innerText = originalText;
-                    resolve(found);
-                }
-            }, 200);
-        });
+        const found = await finished;
+        btn.disabled = false;
+        btn.innerText = originalText;
+        return found;
     }
 
     function showSaveError(messages) {
@@ -173,6 +202,7 @@
         }
     }
 
+    state.calculateRoute = calculateRoute;
     document.getElementById('addStopBtn').addEventListener('click', addStopFromInputs);
     document.getElementById('calcRouteBtn').addEventListener('click', calculateRoute);
     document.getElementById('saveTripBtn').addEventListener('click', saveTrip);
@@ -181,8 +211,8 @@
     state.stops.forEach(addMarker);
     renderStops();
     if (state.route && state.route.geometry.length > 0) {
-        const line = L.polyline(state.route.geometry.map(p => [p.latitude, p.longitude]), { color: 'crimson', weight: 6 }).addTo(map);
-        map.fitBounds(line.getBounds(), { padding: [40, 40] });
+        state.savedRouteLine = L.polyline(state.route.geometry.map(p => [p.latitude, p.longitude]), { color: 'crimson', weight: 6 }).addTo(map);
+        map.fitBounds(state.savedRouteLine.getBounds(), { padding: [40, 40] });
     } else if (state.stops.length >= 2) {
         updateRouting();
     }

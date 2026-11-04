@@ -7,7 +7,7 @@
     <h2>@Model.Name</h2>
     <div>
         <a class="btn btn-outline-secondary" href="/">Back</a>
-        <a class="btn btn-primary" href="/api/trips/@Model.Id/duplicate">Duplicate</a>
+        <button type="button" id="duplicateTrip" class="btn btn-primary">Duplicate</button>
         <a class="btn btn-success" href="/Trips/View/@Model.Id/poster.svg" target="_blank">Generate Route Image</a>
     </div>
 </div>
@@ -42,7 +42,17 @@
         const stops = trip.stops;
         const routingServiceUrl = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["RoutingServiceUrl"]));
         const map = L.map('mapView').setView([trip.startingLatitude || 34.05, trip.startingLongitude || -118.24], 8);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        document.getElementById('duplicateTrip').addEventListener('click', async () => {
+            const response = await fetch(`/api/trips/${trip.id}/duplicate`, { method: 'POST' });
+            if (response.ok) {
+                const copy = await response.json();
+                window.location.href = `/Trips/View/${copy.id}`;
+            }
+        });
 
         const addStopMarkers = () => stops.forEach(s =>
             L.marker([s.latitude, s.longitude]).addTo(map).bindPopup(textPopup(s.name)));

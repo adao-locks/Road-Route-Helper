@@ -21,9 +21,7 @@ namespace Road_Route_Helper.Controllers
         [HttpGet("Create")]
         public IActionResult Create()
         {
-            // Provide routing service url to the view (configurable via appsettings or environment)
-            var service = _config["Routing:ServiceUrl"] ?? "https://router.project-osrm.org/route/v1";
-            ViewData["RoutingServiceUrl"] = service;
+            SetRoutingServiceUrl();
             return View("~/Views/Trips/Create.cshtml");
         }
 
@@ -32,8 +30,7 @@ namespace Road_Route_Helper.Controllers
         {
             var trip = await _repo.GetByIdAsync(id);
             if (trip == null) return NotFound();
-            var service = _config["Routing:ServiceUrl"] ?? "https://router.project-osrm.org/route/v1";
-            ViewData["RoutingServiceUrl"] = service;
+            SetRoutingServiceUrl();
             return View("~/Views/Trips/Edit.cshtml", trip);
         }
 
@@ -42,10 +39,12 @@ namespace Road_Route_Helper.Controllers
         {
             var trip = await _repo.GetByIdAsync(id);
             if (trip == null) return NotFound();
-            var service = _config["Routing:ServiceUrl"] ?? "https://router.project-osrm.org/route/v1";
-            ViewData["RoutingServiceUrl"] = service;
+            SetRoutingServiceUrl();
             return View("~/Views/Trips/View.cshtml", trip);
         }
+
+        private void SetRoutingServiceUrl() =>
+            ViewData["RoutingServiceUrl"] = _config.GetRequiredSection("Routing:ServiceUrl").Value;
 
         [HttpGet("View/{id}/poster.svg")]
         public async Task<IActionResult> PosterSvg(Guid id)
