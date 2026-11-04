@@ -22,7 +22,7 @@
                 <h5>Details</h5>
                 <p>@Model.Description</p>
                 <p><strong>Distance:</strong> @Model.TotalDistanceKm km</p>
-                <p><strong>Duration:</strong> @Model.EstimatedDuration</p>
+                <p><strong>Duration:</strong> @(Model.EstimatedDuration is { } duration ? Road_Route_Helper.Application.Formatting.DurationFormatter.Format(duration) : "")</p>
                 <h6>Stops</h6>
                 <ul>
                     @foreach(var s in Model.Stops)

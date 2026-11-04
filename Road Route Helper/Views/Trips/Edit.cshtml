@@ -28,10 +28,11 @@
                         </div>
                     </div>
                     <div class="mt-3 d-flex gap-2">
-                        <button type="button" id="calcRouteBtn" class="btn btn-outline-primary" onclick="window._tripCreate.calculateRoute()">Calcular rota</button>
-                        <button type="button" class="btn btn-primary" onclick="saveTrip()">Salvar alterações</button>
+                        <button type="button" id="calcRouteBtn" data-testid="calc-route" class="btn btn-outline-primary">Calcular rota</button>
+                        <button type="button" id="saveTripBtn" data-testid="save-trip" class="btn btn-primary">Salvar alterações</button>
                         <a class="btn btn-outline-secondary" href="/">Cancelar</a>
                     </div>
+                    <div id="saveError" class="alert alert-danger mt-3 d-none" role="alert"></div>
                 </form>
             </div>
         </div>
@@ -49,7 +50,7 @@
                 <h5>Stops</h5>
                 <div class="d-flex gap-2 mb-2">
                     <input id="stopName" class="form-control form-control-sm" placeholder="Stop name" />
-                    <button class="btn btn-sm btn-success" onclick="window._tripCreate.addStopFromInputs()">Add</button>
+                    <button type="button" id="addStopBtn" class="btn btn-sm btn-success">Add</button>
                 </div>
                 <ul id="stopsList" class="list-group"></ul>
             </div>
@@ -57,57 +58,16 @@
         <div class="card">
             <div class="card-body">
                 <h6>Generate</h6>
-                <button class="btn btn-outline-primary" onclick="generateImage()">Generate Route Image</button>
+                <a class="btn btn-outline-primary" href="/Trips/View/@Model.Id/poster.svg" target="_blank">Generate Route Image</a>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <script type="application/json" id="trip-initial-data">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Road_Route_Helper.Application.DTOs.TripMapper.ToDto(Model), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)))</script>
     <script>
-        // pass server routing url and initial data to the external script
-        window._tripCreate = window._tripCreate || {};
-        window._tripCreate.routingServiceUrl = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["RoutingServiceUrl"] ?? "https://router.project-osrm.org/route/v1"));
-        window._tripCreate.initialData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new {
-            name = Model.Name,
-            description = Model.Description,
-            startDate = Model.StartDate?.ToString("yyyy-MM-dd"),
-            endDate = Model.EndDate?.ToString("yyyy-MM-dd"),
-            stops = Model.Stops.Select(s => new { id = s.Id, name = s.Name, latitude = s.Latitude, longitude = s.Longitude, order = s.Order }).OrderBy(s => s.order).ToList(),
-            routeGeometry = Model.RouteGeometry.Select(p => new { latitude = p.Latitude, longitude = p.Longitude }).ToList(),
-            totalDistanceKm = Model.TotalDistanceKm,
-            estimatedDuration = Model.EstimatedDuration?.ToString()
-        }));
+        window._tripCreate = { routingServiceUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["RoutingServiceUrl"])) };
     </script>
     <script src="/js/trip-create.js"></script>
-    <script>
-        async function saveTrip() {
-            const id = '@Model.Id';
-            const stops = (window._tripCreate.stops || []).map((s, i) => ({ id: s.id, name: s.name, latitude: s.latitude, longitude: s.longitude, order: i }));
-            const dto = {
-                id: id,
-                name: document.getElementById('name').value,
-                description: document.getElementById('description').value,
-                startDate: document.getElementById('startDate').value || null,
-                endDate: document.getElementById('endDate').value || null,
-                stops: stops,
-                totalDistanceKm: window._lastRoute ? window._lastRoute.distanceKm : @Model.TotalDistanceKm,
-                estimatedDuration: window._lastRoute ? window._lastRoute.duration : '@(Model.EstimatedDuration?.ToString())',
-                routeGeometry: window._lastRoute && window._lastRoute.geometry ? window._lastRoute.geometry : @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RouteGeometry.Select(p => new { latitude = p.Latitude, longitude = p.Longitude })))
-            };
-
-            const res = await fetch('/api/trips/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dto) });
-            if (res.ok) {
-                alert('Trip updated');
-                window.location.href = '/';
-            } else {
-                alert('Error updating trip');
-            }
-        }
-
-        function generateImage() {
-            window.open('/Trips/View/@Model.Id/poster.svg', '_blank');
-        }
-    </script>
 }
-

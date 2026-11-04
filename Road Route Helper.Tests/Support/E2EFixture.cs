@@ -28,6 +28,7 @@ public class E2EFixture : IAsyncLifetime
     {
         var context = await _browser.NewContextAsync(options);
         var page = await context.NewPageAsync();
+        page.SetDefaultTimeout(10_000);
         var errors = new List<string>();
         _errors[page] = errors;
         page.PageError += (_, message) => errors.Add(message);
