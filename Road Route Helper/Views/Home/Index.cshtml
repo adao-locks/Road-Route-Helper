@@ -7,41 +7,55 @@
     <a class="btn btn-primary" href="/Trips/Create">+ Create Trip</a>
 </div>
 
-<div id="trips" class="row gy-3">
-    <!-- Cards loaded by JS -->
-</div>
+<div id="trips" class="row gy-3"></div>
 
-<script>
-    async function loadTrips() {
-        const res = await fetch('/api/trips');
-        const items = await res.json();
-        const container = document.getElementById('trips');
-        container.innerHTML = '';
-        for (const t of items) {
-            const col = document.createElement('div');
-            col.className = 'col-12 col-md-6 col-lg-4';
-            col.innerHTML = `
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">${t.name}</h5>
-                        <p class="card-text text-truncate">${t.description || ''}</p>
-                        <p class="mb-1"><small>${t.startDate ? new Date(t.startDate).toLocaleDateString() : ''} - ${t.endDate ? new Date(t.endDate).toLocaleDateString() : ''}</small></p>
-                        <div class="d-flex gap-2">
-                            <a class="btn btn-sm btn-outline-primary" href="/Trips/Edit/${t.id}">Edit</a>
-                            <a class="btn btn-sm btn-outline-secondary" href="/Trips/View/${t.id}">Open</a>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTrip('${t.id}')">Delete</button>
-                        </div>
-                    </div>
-                </div>`;
-            container.appendChild(col);
+<template id="tripCard">
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title" data-field="name"></h5>
+                <p class="card-text text-truncate" data-field="description"></p>
+                <p class="mb-1"><small data-field="dates"></small></p>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-sm btn-outline-primary" data-action="edit">Edit</a>
+                    <a class="btn btn-sm btn-outline-secondary" data-action="open">Open</a>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-action="delete">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+@section Scripts {
+    <script>
+        function formatDates(trip) {
+            const format = value => value ? new Date(value).toLocaleDateString() : '';
+            return `${format(trip.startDate)} - ${format(trip.endDate)}`;
         }
-    }
 
-    async function deleteTrip(id) {
-        if (!confirm('Delete this trip?')) return;
-        await fetch('/api/trips/' + id, { method: 'DELETE' });
+        async function loadTrips() {
+            const response = await fetch('/api/trips');
+            const trips = await response.json();
+            const template = document.getElementById('tripCard');
+            const cards = trips.map(trip => {
+                const card = template.content.cloneNode(true);
+                card.querySelector('[data-field=name]').textContent = trip.name;
+                card.querySelector('[data-field=description]').textContent = trip.description || '';
+                card.querySelector('[data-field=dates]').textContent = formatDates(trip);
+                card.querySelector('[data-action=edit]').href = `/Trips/Edit/${trip.id}`;
+                card.querySelector('[data-action=open]').href = `/Trips/View/${trip.id}`;
+                card.querySelector('[data-action=delete]').addEventListener('click', () => deleteTrip(trip.id));
+                return card;
+            });
+            document.getElementById('trips').replaceChildren(...cards);
+        }
+
+        async function deleteTrip(id) {
+            if (!confirm('Delete this trip?')) return;
+            await fetch('/api/trips/' + id, { method: 'DELETE' });
+            loadTrips();
+        }
+
         loadTrips();
-    }
-
-    loadTrips();
-</script>
+    </script>
+}

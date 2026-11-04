@@ -20,26 +20,32 @@
     } : null;
 
     function addMarker(stop) {
-        const m = L.marker([stop.latitude, stop.longitude]).addTo(map).bindPopup(stop.name);
+        const m = L.marker([stop.latitude, stop.longitude]).addTo(map).bindPopup(textPopup(stop.name));
         state.markers.push({ id: stop.id, marker: m });
     }
 
     function renderStops() {
-        const ul = document.getElementById('stopsList');
-        ul.innerHTML = '';
-        state.stops.forEach((s, idx) => {
+        const items = state.stops.map((stop, idx) => {
             const li = document.createElement('li');
             li.className = 'list-group-item d-flex justify-content-between align-items-center';
-            li.innerHTML = `<div>${idx + 1}. ${s.name}</div><div><button class='btn btn-sm btn-danger' onclick="window._tripCreate.removeStop('${s.id}')">Del</button></div>`;
-            ul.appendChild(li);
+            li.dataset.id = stop.id;
+            const label = document.createElement('div');
+            label.textContent = `${idx + 1}. ${stop.name}`;
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'btn btn-sm btn-danger';
+            remove.textContent = 'Del';
+            remove.addEventListener('click', () => removeStop(stop.id));
+            li.append(label, remove);
+            return li;
         });
-        Sortable.create(ul, { onEnd: reorderStops });
+        document.getElementById('stopsList').replaceChildren(...items);
     }
 
     function reorderStops() {
-        const ul = document.getElementById('stopsList');
-        const items = Array.from(ul.children);
-        state.stops = items.map((li, idx) => ({ ...state.stops.find(s => li.innerText.includes(s.name)), order: idx })).filter(Boolean);
+        const byId = new Map(state.stops.map(s => [s.id, s]));
+        const items = Array.from(document.getElementById('stopsList').children);
+        state.stops = items.map((li, idx) => ({ ...byId.get(li.dataset.id), order: idx }));
         renderStops();
         updateRouting();
     }
@@ -71,7 +77,7 @@
             lineOptions: { styles: [{ color: 'crimson', weight: 6 }] },
             showAlternatives: false,
             fitSelectedRoute: true,
-            createMarker: (i, wp) => L.marker(wp.latLng).bindPopup(state.stops[i].name)
+            createMarker: (i, wp) => L.marker(wp.latLng).bindPopup(textPopup(state.stops[i].name))
         }).addTo(map);
 
         state.routingControl.on('routesfound', e => {
@@ -167,11 +173,11 @@
         }
     }
 
-    state.removeStop = removeStop;
     document.getElementById('addStopBtn').addEventListener('click', addStopFromInputs);
     document.getElementById('calcRouteBtn').addEventListener('click', calculateRoute);
     document.getElementById('saveTripBtn').addEventListener('click', saveTrip);
 
+    Sortable.create(document.getElementById('stopsList'), { onEnd: reorderStops });
     state.stops.forEach(addMarker);
     renderStops();
     if (state.route && state.route.geometry.length > 0) {
