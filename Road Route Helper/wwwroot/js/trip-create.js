@@ -1,5 +1,8 @@
 // Map, stops and saving for the trip create and edit pages.
 (function () {
+    const CUSTOM_CATEGORY = 8;
+    const ROUTING_DEBOUNCE_MS = 500;
+
     const state = window._tripCreate = window._tripCreate || {};
 
     const map = L.map('map').setView([34.0522, -118.2437], 8);
@@ -11,8 +14,10 @@
     state.map = map;
     state.trip = initialData ? JSON.parse(initialData.textContent) : {};
     state.stops = (state.trip.stops || []).map(s => ({ ...s }));
-    state.markers = [];
+    state.markers = new Map();
     state.routingControl = null;
+    state.routingTimer = null;
+    state.routingInFlight = false;
     state.routeWaiters = [];
     state.savedRouteLine = null;
     state.route = state.trip.id ? {
@@ -21,40 +26,142 @@
         geometry: state.trip.routeGeometry || []
     } : null;
 
-    function addMarker(stop) {
-        const m = L.marker([stop.latitude, stop.longitude]).addTo(map).bindPopup(textPopup(stop.name));
-        state.markers.push({ id: stop.id, marker: m });
+    function renderMarkers() {
+        state.markers.forEach(marker => map.removeLayer(marker));
+        state.markers.clear();
+        state.stops.forEach(stop => {
+            const marker = L.marker([stop.latitude, stop.longitude], { draggable: true, icon: categoryIcon(stop.category) })
+                .addTo(map)
+                .bindPopup(textPopup(stop.name));
+            marker.on('dragend', () => {
+                const position = marker.getLatLng();
+                stop.latitude = position.lat;
+                stop.longitude = position.lng;
+                stopsChanged();
+            });
+            state.markers.set(stop.id, marker);
+        });
     }
 
     function renderStops() {
+        const categories = stopCategories();
         const items = state.stops.map((stop, idx) => {
             const li = document.createElement('li');
-            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            li.className = 'list-group-item d-flex justify-content-between align-items-center gap-2';
             li.dataset.id = stop.id;
+
             const label = document.createElement('div');
             label.textContent = `${idx + 1}. ${stop.name}`;
+            const category = document.createElement('small');
+            category.className = 'd-block text-muted';
+            category.textContent = categories.find(c => c.category === stop.category).label;
+            label.append(category);
+
+            const actions = document.createElement('div');
+            actions.className = 'd-flex gap-1';
+            const edit = document.createElement('button');
+            edit.type = 'button';
+            edit.className = 'btn btn-sm btn-outline-secondary';
+            edit.dataset.action = 'edit';
+            edit.textContent = 'Editar';
+            edit.addEventListener('click', () => openStopForm(L.latLng(stop.latitude, stop.longitude), stop));
             const remove = document.createElement('button');
             remove.type = 'button';
             remove.className = 'btn btn-sm btn-danger';
             remove.textContent = 'Del';
             remove.addEventListener('click', () => removeStop(stop.id));
-            li.append(label, remove);
+            actions.append(edit, remove);
+
+            li.append(label, actions);
             return li;
         });
         document.getElementById('stopsList').replaceChildren(...items);
     }
 
+    function buildField(labelText, control) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mb-2';
+        const label = document.createElement('label');
+        label.className = 'form-label mb-0';
+        label.htmlFor = control.id;
+        label.textContent = labelText;
+        wrapper.append(label, control);
+        return wrapper;
+    }
+
+    function openStopForm(latlng, stop) {
+        const name = document.createElement('input');
+        name.id = 'stopFormName';
+        name.className = 'form-control form-control-sm';
+        name.value = stop ? stop.name : '';
+
+        const category = document.createElement('select');
+        category.id = 'stopFormCategory';
+        category.className = 'form-select form-select-sm';
+        stopCategories().forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.category;
+            option.textContent = c.label;
+            category.append(option);
+        });
+        category.value = stop ? stop.category : CUSTOM_CATEGORY;
+
+        const notes = document.createElement('textarea');
+        notes.id = 'stopFormNotes';
+        notes.className = 'form-control form-control-sm';
+        notes.value = stop ? stop.notes : '';
+
+        const error = document.createElement('div');
+        error.id = 'stopFormError';
+        error.className = 'text-danger small mb-2';
+        error.setAttribute('role', 'alert');
+
+        const save = document.createElement('button');
+        save.id = 'stopFormSave';
+        save.type = 'submit';
+        save.className = 'btn btn-sm btn-primary';
+        save.textContent = 'Salvar parada';
+
+        const form = document.createElement('form');
+        form.append(buildField('Nome', name), buildField('Categoria', category), buildField('Notas', notes), error, save);
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            const values = { name: name.value.trim(), category: Number(category.value), notes: notes.value };
+            if (!values.name) {
+                error.textContent = 'Informe o nome da parada.';
+                return;
+            }
+            map.closePopup();
+            if (stop) {
+                Object.assign(stop, values);
+                renderStops();
+                renderMarkers();
+            } else {
+                state.stops.push({
+                    ...values,
+                    id: crypto.randomUUID(),
+                    latitude: latlng.lat,
+                    longitude: latlng.lng,
+                    order: state.stops.length
+                });
+                stopsChanged();
+            }
+        });
+
+        L.popup({ minWidth: 240 }).setLatLng(latlng).setContent(form).openOn(map);
+        name.focus();
+    }
+    state.openStopForm = openStopForm;
+
     function reorderStops() {
         const byId = new Map(state.stops.map(s => [s.id, s]));
         const items = Array.from(document.getElementById('stopsList').children);
-        state.stops = items.map((li, idx) => ({ ...byId.get(li.dataset.id), order: idx }));
+        state.stops = items.map((li, idx) => Object.assign(byId.get(li.dataset.id), { order: idx }));
         stopsChanged();
     }
 
     function removeStop(id) {
         state.stops = state.stops.filter(s => s.id !== id);
-        const m = state.markers.find(x => x.id === id);
-        if (m) { map.removeLayer(m.marker); state.markers = state.markers.filter(x => x.id !== id); }
         stopsChanged();
     }
 
@@ -80,25 +187,29 @@
     }
 
     function finishRouting(found) {
+        state.routingInFlight = false;
         const waiting = state.routeWaiters;
         state.routeWaiters = [];
         waiting.forEach(resolve => resolve(found));
     }
 
     function updateRouting() {
+        clearTimeout(state.routingTimer);
+        state.routingTimer = null;
         if (state.routingControl) { map.removeControl(state.routingControl); state.routingControl = null; }
         setRouteStatus('');
         if (state.stops.length < 2) {
             finishRouting(false);
             return;
         }
+        state.routingInFlight = true;
         const control = L.Routing.control({
             waypoints: state.stops.map(s => L.latLng(s.latitude, s.longitude)),
             router: L.Routing.osrmv1({ serviceUrl: state.routingServiceUrl }),
-            lineOptions: { styles: [{ color: 'crimson', weight: 6 }] },
+            lineOptions: { styles: [{ color: 'crimson', weight: 6 }], addWaypoints: false },
             showAlternatives: false,
             fitSelectedRoute: true,
-            createMarker: (i, wp) => L.marker(wp.latLng).bindPopup(textPopup(state.stops[i].name))
+            createMarker: () => null
         }).addTo(map);
         state.routingControl = control;
 
@@ -120,25 +231,22 @@
         });
     }
 
+    function scheduleRouting() {
+        clearTimeout(state.routingTimer);
+        state.routingTimer = setTimeout(updateRouting, ROUTING_DEBOUNCE_MS);
+    }
+
     function stopsChanged() {
         state.route = null;
         clearSavedRouteLine();
+        setRouteStatus('');
         renderStops();
-        updateRouting();
+        renderMarkers();
+        scheduleRouting();
     }
 
-    function addStopFromInputs() {
-        const latlng = map.getCenter();
-        state.stops.push({
-            id: crypto.randomUUID(),
-            name: document.getElementById('stopName').value || 'Stop',
-            category: 8,
-            notes: '',
-            latitude: latlng.lat,
-            longitude: latlng.lng,
-            order: state.stops.length
-        });
-        stopsChanged();
+    function waitForRouting() {
+        return new Promise(resolve => state.routeWaiters.push(resolve));
     }
 
     async function calculateRoute() {
@@ -146,14 +254,16 @@
         const originalText = btn.innerText;
         btn.disabled = true;
         btn.innerText = 'Calculando...';
-        const finished = new Promise(resolve => state.routeWaiters.push(resolve));
+        const finished = waitForRouting();
         clearSavedRouteLine();
         updateRouting();
         const found = await finished;
+        if (state.stops.length < 2) setRouteStatus('Adicione pelo menos duas paradas para calcular a rota.');
         btn.disabled = false;
         btn.innerText = originalText;
         return found;
     }
+    state.calculateRoute = calculateRoute;
 
     function showSaveError(messages) {
         const box = document.getElementById('saveError');
@@ -172,48 +282,54 @@
     }
 
     async function saveTrip() {
-        const value = id => document.getElementById(id).value;
-        const route = state.route;
-        const dto = {
-            ...state.trip,
-            name: value('name'),
-            description: value('description'),
-            startDate: value('startDate') || null,
-            endDate: value('endDate') || null,
-            stops: state.stops.map((s, i) => ({ ...s, order: i })),
-            totalDistanceKm: route ? route.distanceKm : 0,
-            estimatedDuration: route ? route.duration : null,
-            routeGeometry: route ? route.geometry : []
-        };
-        const url = state.trip.id ? `/api/trips/${state.trip.id}` : '/api/trips';
-        const method = state.trip.id ? 'PUT' : 'POST';
-
+        const saveButton = document.getElementById('saveTripBtn');
+        saveButton.disabled = true;
         showSaveError([]);
         try {
+            // A route still being calculated belongs to this save.
+            if (state.routingTimer !== null || state.routingInFlight) await waitForRouting();
+
+            const value = id => document.getElementById(id).value;
+            const route = state.route;
+            const dto = {
+                ...state.trip,
+                name: value('name'),
+                description: value('description'),
+                startDate: value('startDate') || null,
+                endDate: value('endDate') || null,
+                stops: state.stops.map((s, i) => ({ ...s, order: i })),
+                totalDistanceKm: route ? route.distanceKm : 0,
+                estimatedDuration: route ? route.duration : null,
+                routeGeometry: route ? route.geometry : []
+            };
+            const url = state.trip.id ? `/api/trips/${state.trip.id}` : '/api/trips';
+            const method = state.trip.id ? 'PUT' : 'POST';
             const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dto) });
             if (res.ok) {
                 window.location.href = '/';
-            } else {
-                showSaveError(await readErrors(res));
+                return;
             }
+            showSaveError(await readErrors(res));
         } catch (err) {
             console.error(err);
             showSaveError(['Não foi possível salvar a viagem.']);
         }
+        saveButton.disabled = false;
     }
 
-    state.calculateRoute = calculateRoute;
-    document.getElementById('addStopBtn').addEventListener('click', addStopFromInputs);
+    map.on('click', event => openStopForm(event.latlng));
     document.getElementById('calcRouteBtn').addEventListener('click', calculateRoute);
     document.getElementById('saveTripBtn').addEventListener('click', saveTrip);
-
     Sortable.create(document.getElementById('stopsList'), { onEnd: reorderStops });
-    state.stops.forEach(addMarker);
+
+    renderMarkers();
     renderStops();
     if (state.route && state.route.geometry.length > 0) {
         state.savedRouteLine = L.polyline(state.route.geometry.map(p => [p.latitude, p.longitude]), { color: 'crimson', weight: 6 }).addTo(map);
         map.fitBounds(state.savedRouteLine.getBounds(), { padding: [40, 40] });
     } else if (state.stops.length >= 2) {
         updateRouting();
+    } else if (state.stops.length === 1) {
+        map.setView([state.stops[0].latitude, state.stops[0].longitude], 12);
     }
 })();

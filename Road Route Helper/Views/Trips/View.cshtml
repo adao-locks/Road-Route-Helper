@@ -36,6 +36,7 @@
 </div>
 
 @section Scripts {
+    @await Html.PartialAsync("~/Views/Trips/_StopCategories.cshtml")
     <script type="application/json" id="trip-data">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Road_Route_Helper.Application.DTOs.TripMapper.ToDto(Model), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)))</script>
     <script>
         const trip = JSON.parse(document.getElementById('trip-data').textContent);
@@ -55,7 +56,7 @@
         });
 
         const addStopMarkers = () => stops.forEach(s =>
-            L.marker([s.latitude, s.longitude]).addTo(map).bindPopup(textPopup(s.name)));
+            L.marker([s.latitude, s.longitude], { icon: categoryIcon(s.category) }).addTo(map).bindPopup(textPopup(s.name)));
 
         if (trip.routeGeometry.length >= 2) {
             const line = L.polyline(trip.routeGeometry.map(p => [p.latitude, p.longitude]), { color: 'crimson', weight: 6 }).addTo(map);
@@ -68,7 +69,7 @@
                 lineOptions: { styles: [{ color: 'crimson', weight: 6 }] },
                 showAlternatives: false,
                 fitSelectedRoute: true,
-                createMarker: (i, wp) => L.marker(wp.latLng).bindPopup(textPopup(stops[i].name))
+                createMarker: (i, wp) => L.marker(wp.latLng, { icon: categoryIcon(stops[i].category) }).bindPopup(textPopup(stops[i].name))
             }).addTo(map);
         } else if (stops.length === 1) {
             addStopMarkers();
