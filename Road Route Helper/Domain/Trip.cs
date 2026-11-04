@@ -10,12 +10,6 @@ namespace Road_Route_Helper.Domain
         public string Description { get; set; } = string.Empty;
         public DateTimeOffset? StartDate { get; set; }
         public DateTimeOffset? EndDate { get; set; }
-        public string StartingPointName { get; set; } = string.Empty;
-        public double? StartingLatitude { get; set; }
-        public double? StartingLongitude { get; set; }
-        public string DestinationName { get; set; } = string.Empty;
-        public double? DestinationLatitude { get; set; }
-        public double? DestinationLongitude { get; set; }
         public List<Stop> Stops { get; set; } = new List<Stop>();
         public double TotalDistanceKm { get; set; }
         public TimeSpan? EstimatedDuration { get; set; }

@@ -124,8 +124,6 @@ public class TripsApiTests : IDisposable
         var dto = TripSamples.Valid();
         dto.Description = "desc";
         dto.Notes = "notas";
-        dto.StartingPointName = "Inicio";
-        dto.DestinationName = "Destino";
         dto.TotalDistanceKm = 123.45;
         dto.EstimatedDuration = TimeSpan.FromHours(3);
         dto.Stops[0].Category = StopCategory.Hotel;
@@ -137,8 +135,6 @@ public class TripsApiTests : IDisposable
         Assert.Equal(created.Id, updated!.Id);
         Assert.Equal("desc", updated.Description);
         Assert.Equal("notas", updated.Notes);
-        Assert.Equal("Inicio", updated.StartingPointName);
-        Assert.Equal("Destino", updated.DestinationName);
         Assert.Equal(123.45, updated.TotalDistanceKm);
         Assert.Equal(StopCategory.Hotel, updated.Stops[0].Category);
         Assert.Equal("nota da parada", updated.Stops[0].Notes);

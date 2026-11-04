@@ -32,22 +32,6 @@ namespace Road_Route_Helper.Application.DTOs
         public string Description { get; set; } = string.Empty;
         public DateTimeOffset? StartDate { get; set; }
         public DateTimeOffset? EndDate { get; set; }
-        public string StartingPointName { get; set; } = string.Empty;
-
-        [Range(-90, 90, ErrorMessage = "A latitude deve estar entre -90 e 90.")]
-        public double? StartingLatitude { get; set; }
-
-        [Range(-180, 180, ErrorMessage = "A longitude deve estar entre -180 e 180.")]
-        public double? StartingLongitude { get; set; }
-
-        public string DestinationName { get; set; } = string.Empty;
-
-        [Range(-90, 90, ErrorMessage = "A latitude deve estar entre -90 e 90.")]
-        public double? DestinationLatitude { get; set; }
-
-        [Range(-180, 180, ErrorMessage = "A longitude deve estar entre -180 e 180.")]
-        public double? DestinationLongitude { get; set; }
-
         public List<StopDto> Stops { get; set; } = new List<StopDto>();
         public double TotalDistanceKm { get; set; }
         public TimeSpan? EstimatedDuration { get; set; }

@@ -11,12 +11,6 @@ public static class TripMapper
         Description = trip.Description,
         StartDate = trip.StartDate,
         EndDate = trip.EndDate,
-        StartingPointName = trip.StartingPointName,
-        StartingLatitude = trip.StartingLatitude,
-        StartingLongitude = trip.StartingLongitude,
-        DestinationName = trip.DestinationName,
-        DestinationLatitude = trip.DestinationLatitude,
-        DestinationLongitude = trip.DestinationLongitude,
         Stops = trip.Stops.OrderBy(s => s.Order).Select(s => new StopDto
         {
             Id = s.Id,
@@ -40,12 +34,6 @@ public static class TripMapper
         Description = dto.Description,
         StartDate = dto.StartDate,
         EndDate = dto.EndDate,
-        StartingPointName = dto.StartingPointName,
-        StartingLatitude = dto.StartingLatitude,
-        StartingLongitude = dto.StartingLongitude,
-        DestinationName = dto.DestinationName,
-        DestinationLatitude = dto.DestinationLatitude,
-        DestinationLongitude = dto.DestinationLongitude,
         Stops = dto.Stops.OrderBy(s => s.Order).Select(s => new Stop
         {
             Id = s.Id == Guid.Empty ? Guid.NewGuid() : s.Id,

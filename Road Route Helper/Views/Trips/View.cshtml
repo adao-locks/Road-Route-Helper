@@ -41,7 +41,7 @@
         const trip = JSON.parse(document.getElementById('trip-data').textContent);
         const stops = trip.stops;
         const routingServiceUrl = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["RoutingServiceUrl"]));
-        const map = L.map('mapView').setView([trip.startingLatitude || 34.05, trip.startingLongitude || -118.24], 8);
+        const map = L.map('mapView').setView([-14.2350, -51.9253], 4);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);

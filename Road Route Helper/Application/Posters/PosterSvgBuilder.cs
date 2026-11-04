@@ -65,25 +65,12 @@ public static class PosterSvgBuilder
         for (var i = 0; i < stops.Count; i++)
         {
             var (x, y) = view.Project(stops[i].Latitude, stops[i].Longitude);
-            var (letter, color) = CategoryStyle(stops[i].Category);
-            Append(svg, $"<circle cx='{x:F1}' cy='{y:F1}' r='12' fill='{color}' stroke='#0b1220' stroke-width='2'/>");
-            Append(svg, $"<text x='{x:F1}' y='{y + 5:F1}' fill='#fff' font-size='12' font-family='{FontFamily}' text-anchor='middle'>{SecurityElement.Escape(letter)}</text>");
+            var style = StopCategoryStyles.For(stops[i].Category);
+            Append(svg, $"<circle cx='{x:F1}' cy='{y:F1}' r='12' fill='{style.Color}' stroke='#0b1220' stroke-width='2'/>");
+            Append(svg, $"<text x='{x:F1}' y='{y + 5:F1}' fill='#fff' font-size='12' font-family='{FontFamily}' text-anchor='middle'>{SecurityElement.Escape(style.Letter)}</text>");
             Append(svg, $"<text x='{x:F1}' y='{y + 28:F1}' fill='#e2e8f0' font-size='14' font-family='{FontFamily}' text-anchor='middle'>{i + 1}</text>");
         }
     }
-
-    private static (string Letter, string Color) CategoryStyle(StopCategory category) => category switch
-    {
-        StopCategory.Restaurant => ("R", "#ef4444"),
-        StopCategory.GasStation => ("G", "#f97316"),
-        StopCategory.PhotoSpot => ("P", "#f59e0b"),
-        StopCategory.Hotel => ("H", "#06b6d4"),
-        StopCategory.TouristAttraction => ("T", "#8b5cf6"),
-        StopCategory.CoffeeShop => ("C", "#a16207"),
-        StopCategory.MotorcycleStop => ("M", "#10b981"),
-        StopCategory.Maintenance => ("!", "#ef4444"),
-        _ => ("•", "#6b7280"),
-    };
 
     private static void AppendLegend(StringBuilder svg, Trip trip)
     {
