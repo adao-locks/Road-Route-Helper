@@ -89,6 +89,24 @@ public class RouteStateTests(E2EFixture fixture)
     }
 
     [Fact]
+    public async Task Tela_de_visualizacao_enquadra_a_rota_ao_abrir()
+    {
+        var dto = WithGeometry(2);
+        dto.RouteGeometry = [new RoutePointDto { Latitude = -27.6, Longitude = -48.5 }, new RoutePointDto { Latitude = -28.0, Longitude = -50.3 }];
+        var trip = await CreateTrip(dto);
+        var page = await fixture.NewPageAsync();
+        await page.GotoAsync($"{fixture.BaseUrl}/Trips/View/{trip.Id}");
+
+        var inView = await page.EvaluateAsync<bool>("""
+            () => {
+                const bounds = map.getBounds();
+                return bounds.contains([-27.6, -48.5]) && bounds.contains([-28.0, -50.3]);
+            }
+            """);
+        Assert.True(inView);
+    }
+
+    [Fact]
     public async Task Tela_de_visualizacao_mostra_atribuicao_OSM()
     {
         var trip = await CreateTrip(WithGeometry(2));
