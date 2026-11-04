@@ -9,9 +9,11 @@
         <a class="btn btn-outline-secondary" href="/">Voltar</a>
         <button type="button" id="duplicateTrip" class="btn btn-primary">Duplicar</button>
         <a class="btn btn-success" href="/Trips/View/@Model.Id/poster.svg" target="_blank">Gerar poster</a>
+        <button type="button" class="btn btn-outline-success" id="exportPng" data-svg-url="/Trips/View/@Model.Id/poster.svg" data-file-name="@(Road_Route_Helper.Application.Formatting.FileNames.Slug(Model.Name)).png">Exportar PNG</button>
         <a class="btn btn-outline-success" id="exportGpx" href="/Trips/View/@Model.Id/route.gpx">Exportar GPX</a>
     </div>
 </div>
+<div id="exportError" class="alert alert-danger d-none" role="alert"></div>
 
 <div class="row">
     <div class="col-lg-8">
@@ -81,4 +83,5 @@
             map.setView([stops[0].latitude, stops[0].longitude], 12);
         }
     </script>
+    <script src="/js/poster-png.js"></script>
 }
