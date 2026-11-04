@@ -24,5 +24,7 @@ namespace Road_Route_Helper.Domain
         public double Longitude { get; set; }
         public string Notes { get; set; } = string.Empty;
         public int Order { get; set; }
+
+        public Stop Clone() => (Stop)MemberwiseClone();
     }
 }

@@ -22,5 +22,24 @@ namespace Road_Route_Helper.Domain
         // Stored full route geometry (ordered list of lat/lng points following the road)
         public List<RoutePoint> RouteGeometry { get; set; } = new List<RoutePoint>();
         public string Notes { get; set; } = string.Empty;
+
+        /// <summary>Independent copy with the same ids.</summary>
+        public Trip DeepClone()
+        {
+            var clone = (Trip)MemberwiseClone();
+            clone.Stops = Stops.ConvertAll(s => s.Clone());
+            clone.RouteGeometry = RouteGeometry.ConvertAll(p => new RoutePoint { Latitude = p.Latitude, Longitude = p.Longitude });
+            return clone;
+        }
+
+        /// <summary>Independent copy that is a new trip: new ids and a marked name.</summary>
+        public Trip ToCopy()
+        {
+            var copy = DeepClone();
+            copy.Id = Guid.NewGuid();
+            copy.Name = Name + " (Copy)";
+            copy.Stops.ForEach(s => s.Id = Guid.NewGuid());
+            return copy;
+        }
     }
 }

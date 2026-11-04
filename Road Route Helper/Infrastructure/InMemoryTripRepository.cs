@@ -72,32 +72,7 @@ namespace Road_Route_Helper.Infrastructure
         public Task<Trip?> DuplicateAsync(Guid id)
         {
             if (!_store.TryGetValue(id, out var original)) return Task.FromResult<Trip?>(null);
-            var copy = new Trip
-            {
-                Id = Guid.NewGuid(),
-                Name = original.Name + " (Copy)",
-                Description = original.Description,
-                StartDate = original.StartDate,
-                EndDate = original.EndDate,
-                StartingPointName = original.StartingPointName,
-                StartingLatitude = original.StartingLatitude,
-                StartingLongitude = original.StartingLongitude,
-                DestinationName = original.DestinationName,
-                DestinationLatitude = original.DestinationLatitude,
-                DestinationLongitude = original.DestinationLongitude,
-                Stops = original.Stops.Select(s => new Stop {
-                    Id = Guid.NewGuid(),
-                    Name = s.Name,
-                    Category = s.Category,
-                    Latitude = s.Latitude,
-                    Longitude = s.Longitude,
-                    Notes = s.Notes,
-                    Order = s.Order
-                }).ToList(),
-                TotalDistanceKm = original.TotalDistanceKm,
-                EstimatedDuration = original.EstimatedDuration,
-                Notes = original.Notes
-            };
+            var copy = original.ToCopy();
             _store[copy.Id] = copy;
             return Task.FromResult<Trip?>(copy);
         }
