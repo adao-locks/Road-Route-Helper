@@ -1,0 +1,17 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet build "Road Route Helper.slnx"
+      - run: pwsh "Road Route Helper.Tests/bin/Debug/net10.0/playwright.ps1" install --with-deps chromium
+      - run: dotnet test "Road Route Helper.slnx" --no-build
