@@ -1,29 +1,29 @@
 @model Road_Route_Helper.Domain.Trip
 @{
-    ViewData["Title"] = "Edit Trip";
+    ViewData["Title"] = "Editar viagem";
 }
 
 <div class="row">
     <div class="col-lg-8">
         <div class="card mb-3">
             <div class="card-body">
-                <h4>Editar Viagem</h4>
+                <h4>Editar viagem</h4>
                 <form id="tripForm">
                     <div class="mb-3">
-                        <label class="form-label">Trip Name</label>
+                        <label class="form-label">Nome da viagem</label>
                         <input class="form-control" id="name" value="@Model.Name" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Description</label>
+                        <label class="form-label">Descrição</label>
                         <textarea class="form-control" id="description">@Model.Description</textarea>
                     </div>
                     <div class="row">
                         <div class="col">
-                            <label class="form-label">Start Date</label>
+                            <label class="form-label">Data de início</label>
                             <input type="date" class="form-control" id="startDate" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
                         </div>
                         <div class="col">
-                            <label class="form-label">End Date</label>
+                            <label class="form-label">Data de término</label>
                             <input type="date" class="form-control" id="endDate" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
                         </div>
                     </div>
@@ -40,7 +40,7 @@
 
         <div class="card">
             <div class="card-body">
-                <h5>Route Map</h5>
+                <h5>Mapa da rota</h5>
                 <div id="map" style="height:480px"></div>
             </div>
         </div>
@@ -48,7 +48,7 @@
     <div class="col-lg-4">
         <div class="card mb-3">
             <div class="card-body">
-                <h5>Stops</h5>
+                <h5>Paradas</h5>
                 @await Html.PartialAsync("~/Views/Trips/_AddressSearch.cshtml")
                 <p class="text-muted small mb-2">Clique no mapa para adicionar uma parada.</p>
                 <ul id="stopsList" class="list-group"></ul>
@@ -56,8 +56,8 @@
         </div>
         <div class="card">
             <div class="card-body">
-                <h6>Generate</h6>
-                <a class="btn btn-outline-primary" href="/Trips/View/@Model.Id/poster.svg" target="_blank">Generate Route Image</a>
+                <h6>Poster</h6>
+                <a class="btn btn-outline-primary" href="/Trips/View/@Model.Id/poster.svg" target="_blank">Gerar poster</a>
             </div>
         </div>
     </div>

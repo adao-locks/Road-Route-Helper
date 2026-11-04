@@ -5,7 +5,7 @@
 
     const state = window._tripCreate = window._tripCreate || {};
 
-    const map = L.map('map').setView([34.0522, -118.2437], 8);
+    const map = L.map('map').setView([-14.2350, -51.9253], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
@@ -68,7 +68,7 @@
             const remove = document.createElement('button');
             remove.type = 'button';
             remove.className = 'btn btn-sm btn-danger';
-            remove.textContent = 'Del';
+            remove.textContent = 'Excluir';
             remove.addEventListener('click', () => removeStop(stop.id));
             actions.append(edit, remove);
 
@@ -205,7 +205,7 @@
         state.routingInFlight = true;
         const control = L.Routing.control({
             waypoints: state.stops.map(s => L.latLng(s.latitude, s.longitude)),
-            router: L.Routing.osrmv1({ serviceUrl: state.routingServiceUrl }),
+            ...routingLocale(state.routingServiceUrl),
             lineOptions: { styles: [{ color: 'crimson', weight: 6 }], addWaypoints: false },
             showAlternatives: false,
             fitSelectedRoute: true,

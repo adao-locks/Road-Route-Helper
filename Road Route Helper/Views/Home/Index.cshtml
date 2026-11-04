@@ -1,10 +1,10 @@
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Painel";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3">Dashboard</h1>
-    <a class="btn btn-primary" href="/Trips/Create">+ Create Trip</a>
+    <h1 class="h3">Painel</h1>
+    <a class="btn btn-primary" href="/Trips/Create">+ Nova viagem</a>
 </div>
 
 <div id="trips" class="row gy-3"></div>
@@ -17,9 +17,9 @@
                 <p class="card-text text-truncate" data-field="description"></p>
                 <p class="mb-1"><small data-field="dates"></small></p>
                 <div class="d-flex gap-2">
-                    <a class="btn btn-sm btn-outline-primary" data-action="edit">Edit</a>
-                    <a class="btn btn-sm btn-outline-secondary" data-action="open">Open</a>
-                    <button type="button" class="btn btn-sm btn-outline-danger" data-action="delete">Delete</button>
+                    <a class="btn btn-sm btn-outline-primary" data-action="edit">Editar</a>
+                    <a class="btn btn-sm btn-outline-secondary" data-action="open">Abrir</a>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-action="delete">Excluir</button>
                 </div>
             </div>
         </div>
@@ -29,8 +29,7 @@
 @section Scripts {
     <script>
         function formatDates(trip) {
-            const format = value => value ? new Date(value).toLocaleDateString() : '';
-            return `${format(trip.startDate)} - ${format(trip.endDate)}`;
+            return [trip.startDate, trip.endDate].filter(Boolean).map(formatDate).join(' a ');
         }
 
         async function loadTrips() {
@@ -51,7 +50,7 @@
         }
 
         async function deleteTrip(id) {
-            if (!confirm('Delete this trip?')) return;
+            if (!confirm('Excluir esta viagem?')) return;
             await fetch('/api/trips/' + id, { method: 'DELETE' });
             loadTrips();
         }

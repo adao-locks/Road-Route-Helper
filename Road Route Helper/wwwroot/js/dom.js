@@ -18,3 +18,17 @@ window.categoryIcon = function (category) {
     element.textContent = style.letter;
     return L.divIcon({ className: 'stop-icon', html: element, iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -13] });
 };
+
+// Dates come from the API with an offset: the written calendar day is the trip's day, whatever the browser's time zone.
+window.formatDate = function (isoDate) {
+    const [year, month, day] = isoDate.slice(0, 10).split('-');
+    return `${day}/${month}/${year}`;
+};
+
+// Routing Machine options that keep its directions panel in Portuguese.
+window.routingLocale = function (serviceUrl) {
+    return {
+        router: L.Routing.osrmv1({ serviceUrl, language: 'pt-BR' }),
+        formatter: new L.Routing.Formatter({ language: 'pt', units: 'metric' })
+    };
+};

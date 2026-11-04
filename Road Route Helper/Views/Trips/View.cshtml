@@ -6,9 +6,9 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>@Model.Name</h2>
     <div>
-        <a class="btn btn-outline-secondary" href="/">Back</a>
-        <button type="button" id="duplicateTrip" class="btn btn-primary">Duplicate</button>
-        <a class="btn btn-success" href="/Trips/View/@Model.Id/poster.svg" target="_blank">Generate Route Image</a>
+        <a class="btn btn-outline-secondary" href="/">Voltar</a>
+        <button type="button" id="duplicateTrip" class="btn btn-primary">Duplicar</button>
+        <a class="btn btn-success" href="/Trips/View/@Model.Id/poster.svg" target="_blank">Gerar poster</a>
     </div>
 </div>
 
@@ -19,17 +19,21 @@
     <div class="col-lg-4">
         <div class="card mb-3">
             <div class="card-body">
-                <h5>Details</h5>
+                <h5>Detalhes</h5>
                 <p>@Model.Description</p>
-                <p><strong>Distance:</strong> @Model.TotalDistanceKm km</p>
-                <p><strong>Duration:</strong> @(Model.EstimatedDuration is { } duration ? Road_Route_Helper.Application.Formatting.DurationFormatter.Format(duration) : "")</p>
-                <h6>Stops</h6>
-                <ul>
-                    @foreach(var s in Model.Stops)
+                @if (Model.StartDate != null || Model.EndDate != null)
+                {
+                    <p><strong>Período:</strong> @string.Join(" a ", new[] { Model.StartDate, Model.EndDate }.Where(d => d != null).Select(d => d!.Value.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)))</p>
+                }
+                <p><strong>Distância:</strong> @Model.TotalDistanceKm.ToString("F1", new System.Globalization.CultureInfo("pt-BR")) km</p>
+                <p><strong>Duração:</strong> @(Model.EstimatedDuration is { } duration ? Road_Route_Helper.Application.Formatting.DurationFormatter.Format(duration) : "")</p>
+                <h6>Paradas</h6>
+                <ol>
+                    @foreach (var s in Model.Stops.OrderBy(s => s.Order))
                     {
-                        <li>@s.Order - @s.Name (@s.Category)</li>
+                        <li>@s.Name (@Road_Route_Helper.Domain.StopCategoryStyles.For(s.Category).Label)</li>
                     }
-                </ul>
+                </ol>
             </div>
         </div>
     </div>
@@ -65,7 +69,7 @@
         } else if (stops.length >= 2) {
             L.Routing.control({
                 waypoints: stops.map(s => L.latLng(s.latitude, s.longitude)),
-                router: L.Routing.osrmv1({ serviceUrl: routingServiceUrl }),
+                ...routingLocale(routingServiceUrl),
                 lineOptions: { styles: [{ color: 'crimson', weight: 6 }] },
                 showAlternatives: false,
                 fitSelectedRoute: true,

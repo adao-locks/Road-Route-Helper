@@ -57,10 +57,10 @@ public class StopEditingTests(E2EFixture fixture)
         var page = await fixture.NewPageAsync();
         await page.GotoAsync($"{fixture.BaseUrl}/Trips/Create");
         await page.Locator("#name").FillAsync(tripName);
+        // The form's popup pans the map, so the clicked point is the center from before the click.
+        var center = await page.EvaluateAsync<double[]>("() => { const c = window._tripCreate.map.getCenter(); return [c.lat, c.lng]; }");
         await page.Locator("#map").ClickAsync();
         await FillStopForm(page, "Pousada", StopCategory.Hotel, "reservar");
-
-        var center = await page.EvaluateAsync<double[]>("() => { const c = window._tripCreate.map.getCenter(); return [c.lat, c.lng]; }");
         await SaveTrip(page);
 
         var stop = (await FindByName(tripName)).Stops.Single();

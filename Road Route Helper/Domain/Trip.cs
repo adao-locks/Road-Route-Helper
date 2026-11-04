@@ -31,7 +31,7 @@ namespace Road_Route_Helper.Domain
         {
             var copy = DeepClone();
             copy.Id = Guid.NewGuid();
-            copy.Name = Name + " (Copy)";
+            copy.Name = Name + " (Cópia)";
             copy.Stops.ForEach(s => s.Id = Guid.NewGuid());
             return copy;
         }
