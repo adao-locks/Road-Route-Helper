@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Road_Route_Helper.Application.Exports;
+using Road_Route_Helper.Application.Formatting;
 using Road_Route_Helper.Application.Interfaces;
 using Road_Route_Helper.Application.Posters;
 using System;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Road_Route_Helper.Controllers
@@ -57,6 +60,14 @@ namespace Road_Route_Helper.Controllers
             var trip = await _repo.GetByIdAsync(id);
             if (trip == null) return NotFound();
             return Content(PosterSvgBuilder.Build(trip), "image/svg+xml");
+        }
+
+        [HttpGet("View/{id}/route.gpx")]
+        public async Task<IActionResult> Gpx(Guid id)
+        {
+            var trip = await _repo.GetByIdAsync(id);
+            if (trip == null) return NotFound();
+            return File(Encoding.UTF8.GetBytes(GpxBuilder.Build(trip)), "application/gpx+xml", FileNames.Slug(trip.Name) + ".gpx");
         }
     }
 }
